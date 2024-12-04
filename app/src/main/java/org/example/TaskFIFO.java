@@ -15,6 +15,14 @@ public class TaskFIFO implements Runnable {
 
     @Override
     public void run() {
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            System.out.println(e);
+        }
+    }
 
+    public int[] getPageFaults() {
+        return pageFaults;
     }
 }
