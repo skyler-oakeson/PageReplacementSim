@@ -1,28 +1,36 @@
 package org.example;
+import java.util.LinkedList;
+import java.util.Queue;
 
 public class TaskFIFO implements Runnable {
     private int[] sequence;
-    private int maxMemeoryFrames;
+    private int maxMemoryFrames;
     private int maxPageReference;
     private int[] pageFaults;
+    private int pageFaultCount;
 
-    public TaskFIFO(int[] sequence, int maxMemeoryFrames, int maxPageReference, int[] pageFaults) {
+    public TaskFIFO(int[] sequence, int maxMemoryFrames, int maxPageReference, int[] pageFaults) {
         this.sequence = sequence;
-        this.maxMemeoryFrames = maxMemeoryFrames;
+        this.maxMemoryFrames = maxMemoryFrames;
         this.maxPageReference = maxPageReference;
         this.pageFaults = pageFaults;
+        this.pageFaultCount = 0;
     }
 
     @Override
     public void run() {
-        try {
-            Thread.sleep(100);
-        } catch (InterruptedException e) {
-            System.out.println(e);
+        Queue<Integer> frames = new LinkedList<Integer>();
+        for (int page : sequence) {
+            if (frames.contains(page)) {
+                continue;
+            }
+            if (frames.size() >= maxMemoryFrames) {
+                frames.poll();
+            }
+            frames.add(page);
+            pageFaultCount++;
         }
-    }
 
-    public int[] getPageFaults() {
-        return pageFaults;
+        pageFaults[maxMemoryFrames] = pageFaultCount;
     }
 }
