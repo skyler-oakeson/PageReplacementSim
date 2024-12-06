@@ -8,11 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
-import java.lang.Comparable;
-
-
 import java.util.Collections;
-import java.util.Arrays;
 
 public class Assign6 {
     static final int REF_SEQ_SIZE = 1000;
