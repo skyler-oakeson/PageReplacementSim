@@ -8,6 +8,7 @@ import java.util.concurrent.Executors;
 import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.ArrayList;
+import java.lang.Comparable;
 
 
 import java.util.Collections;
@@ -18,6 +19,7 @@ public class Assign6 {
     static final int NUMBER_OF_SIMS = 1000;
     static final int MAX_MEM_FRAMES = 100;
     static final int MAX_PAGE_REF = 250;
+
 
     public class Thruple<T, S, K> {
         public T x;
@@ -43,8 +45,8 @@ public class Assign6 {
 
             for (int memFrames = 1; memFrames <= MAX_MEM_FRAMES; memFrames++) {
                 pool.submit(new TaskFIFO(seq, memFrames, MAX_MEM_FRAMES, fifoPageFaults[sim]));
-                pool.submit(new TaskLRU(seq, memFrames, MAX_MEM_FRAMES, pageFaults));
-                //pool.submit(new TaskMRU(seq, memFrames, MAX_MEM_FRAMES, pageFaults));
+                pool.submit(new TaskLRU(seq, memFrames, MAX_MEM_FRAMES, lruPageFaults[sim]));
+                //pool.submit(new TaskMRU(seq, memFrames, MAX_MEM_FRAMES, mruPageFaults));
             }
         }
 
@@ -56,23 +58,10 @@ public class Assign6 {
             pool.shutdownNow();
         }
 
-        for ( int[] sim : fifoPageFaults ) {
-            for ( int pf : sim) {
-                System.out.printf("%d, ", pf);
-            }
-            System.out.println();
-        }
+        printSummary(fifoPageFaults);
+        //printSummary(lruPageFaults);
+        //printSummary(mruPageFaults);
 
-        ArrayList<Thruple<Integer, Integer, Integer>> fifoAnoms = countBeladys(fifoPageFaults);
-        for (Thruple<Integer, Integer, Integer> anom : fifoAnoms) {
-            int pf1 = fifoPageFaults[anom.x][anom.y];
-            int pf2 = fifoPageFaults[anom.x][anom.z];
-            int delta = pf1 - pf2;
-            System.out.printf("Anomaly detected in simulation #%d - %d PF's @ %d frames vs. %d PF's @ %d frames (Δ%d)\n", 
-                    anom.x, fifoPageFaults[anom.x][anom.y], anom.y,
-                    fifoPageFaults[anom.x][anom.z], anom.z, delta);
-        }
-        System.out.println(fifoAnoms.size());
     }
 
     private ArrayList<Thruple<Integer, Integer, Integer>> countBeladys(int[][] pageFaults) {
@@ -91,6 +80,19 @@ public class Assign6 {
         return anomalys;
     }
 
+    private void printSummary(int[][] pageFaults) {
+        ArrayList<Thruple<Integer, Integer, Integer>> anomalys = countBeladys(pageFaults);
+        ArrayList<Integer> deltas = new ArrayList<Integer>();
+        for (Thruple<Integer, Integer, Integer> anom : anomalys) {
+            int pf1 = pageFaults[anom.x][anom.y];
+            int pf2 = pageFaults[anom.x][anom.z];
+            int delta = pf2 - pf1;
+            deltas.add(delta);
+            System.out.printf("    Anomaly detected in simulation #%d - %d PF's @ %d frames vs. %d PF's @ %d frames (Δ%d)\n", anom.x, pf1, anom.y, pf2, anom.z, delta);
+        }
+        System.out.printf("Anomaly detected %d in %d with a max delta of %d \n", anomalys.size(), NUMBER_OF_SIMS, Collections.max(deltas));
+    }
+
     private int[] generateSequence(Random rand, int upper) {
         int[] seq = new int[REF_SEQ_SIZE];
         for (int i = 0; i < REF_SEQ_SIZE; i ++) {
@@ -102,6 +104,50 @@ public class Assign6 {
     public static void main(String[] args) {
         Assign6 app = new Assign6();
         app.runSim();
+        testLRU();
+    }
+
+
+    public static void testLRU() {
+        int[] sequence1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        int[] sequence2 = {1, 2, 1, 3, 2, 1, 2, 3, 4};
+        int[] pageFaults = new int[4];  // 4 because maxMemoryFrames is 3
+
+        // Replacement should be: 1, 2, 3, 4, 5, 6, 7, 8
+        // Page Faults should be 9
+        (new TaskLRU(sequence1, 1, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[1]);
+
+        // Replacement should be: 2, 1, 3, 1, 2
+        // Page Faults should be 7
+        (new TaskLRU(sequence2, 2, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[2]);
+
+        // Replacement should be: 1
+        // Page Faults should be 4
+        (new TaskLRU(sequence2, 3, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[3]);
+    }
+
+    public static void testMRU() {
+        int[] sequence1 = {1, 2, 3, 4, 5, 6, 7, 8, 9};
+        int[] sequence2 = {1, 2, 1, 3, 2, 1, 2, 3, 4};
+        int[] pageFaults = new int[4];  // 4 because maxMemoryFrames is 3
+
+        // Replacement should be: 1, 2, 3, 4, 5, 6, 7, 8
+        // Page Faults should be 9
+        (new TaskMRU(sequence1, 1, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[1]);
+
+        // Replacement should be: 1, 2, 1, 3
+        // Page Faults should be 6
+        (new TaskMRU(sequence2, 2, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[2]);
+
+        // Replacement should be: 3
+        // Page Faults should be 4
+        (new TaskMRU(sequence2, 3, MAX_PAGE_REF, pageFaults)).run();
+        System.out.printf("Page Faults: %d\n", pageFaults[3]);
     }
 }
 

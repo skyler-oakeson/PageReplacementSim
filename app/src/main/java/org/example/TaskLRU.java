@@ -22,7 +22,8 @@ public class TaskLRU implements Runnable {
         Queue<Integer> frames = new LinkedList<Integer>();
         for (int page : sequence) {
             if (frames.contains(page)) {
-                continue;
+                frames.remove(page);
+                frames.offer(page);
             }
             if (frames.size() >= maxMemoryFrames) {
                 frames.poll();
