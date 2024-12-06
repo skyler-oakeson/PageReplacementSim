@@ -23,7 +23,8 @@ public class TaskLRU implements Runnable {
         for (int page : sequence) {
             if (frames.contains(page)) {
                 frames.remove(page);
-                frames.offer(page);
+                frames.add(page);
+                continue;
             }
             if (frames.size() >= maxMemoryFrames) {
                 frames.poll();
